@@ -8,6 +8,9 @@ const connectDB = require('./config/database');
 // Import routes
 const userRoutes = require('./routes/api/users');
 const sessionRoutes = require('./routes/api/sessions');
+const productRoutes = require('./routes/api/products');
+const cartRoutes = require('./routes/api/carts');
+const orderRoutes = require('./routes/api/orders');
 
 // Initialize Express app
 const app = express();
@@ -21,11 +24,14 @@ app.use(express.urlencoded({ extended: false }));
 
 // Initialize Passport
 app.use(passport.initialize());
-require('./config/passport');
+require('./config/passport.config');
 
 // Use routes
 app.use('/api/users', userRoutes);
 app.use('/api/sessions', sessionRoutes);
+app.use('/api/products', productRoutes);
+app.use('/api/carts', cartRoutes);
+app.use('/api/orders', orderRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

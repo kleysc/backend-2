@@ -90,6 +90,42 @@ npm start
   - Headers: `Authorization: Bearer <token>`
   - Response: Success message
 
+### Products
+
+- **GET /api/products**
+  - Get all products (public)
+  - Response: List of products
+
+- **GET /api/products/:id**
+  - Get product by ID (public)
+  - Response: Product data
+
+- **POST /api/products**
+  - Create a new product (admin only)
+  - Headers: `Authorization: Bearer <token>`
+  - Body:
+  ```json
+  {
+    "name": "Product Name",
+    "description": "Product description",
+    "price": 100,
+    "stock": 50,
+    "category": "Category"
+  }
+  ```
+  - Response: Created product data
+
+- **PUT /api/products/:id**
+  - Update a product (admin only)
+  - Headers: `Authorization: Bearer <token>`
+  - Body: Fields to update
+  - Response: Updated product data
+
+- **DELETE /api/products/:id**
+  - Delete a product (admin only)
+  - Headers: `Authorization: Bearer <token>`
+  - Response: Deleted product data
+
 ## Example API Requests (curl)
 
 ### Register a new user
@@ -119,4 +155,23 @@ curl -X POST http://localhost:3000/api/sessions/login \
 ```bash
 curl -X GET http://localhost:3000/api/sessions/current \
   -H "Authorization: Bearer <your_token>"
+```
+
+### Get all products
+```bash
+curl -X GET http://localhost:3000/api/products
+```
+
+### Create a new product (as admin)
+```bash
+curl -X POST http://localhost:3000/api/products \
+  -H "Authorization: Bearer <admin_token>" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "New Product",
+    "description": "A cool product",
+    "price": 199,
+    "stock": 20,
+    "category": "Gadgets"
+  }'
 ```

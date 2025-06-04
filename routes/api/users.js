@@ -1,25 +1,20 @@
-// Users CRUD routes
-const express = require('express');
-const passport = require('passport');
+const CustomRouter = require('../../CustomRouter');
 const User = require('../../models/User');
 const Cart = require('../../models/Cart');
-const router = express.Router();
+const { jwtAuth, injectUser } = require('../../middlewares/auth');
 
-// Create a new user (public route)
-router.post('/', async (req, res) => {
+const router = new CustomRouter();
+
+// Inyectar req.user si hay JWT (para políticas)
+router.router.use(injectUser);
+
+// Crear usuario (público)
+router.post('/', ['PUBLIC'], async (req, res) => {
   try {
     const { first_name, last_name, email, age, password, role } = req.body;
-    
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'User with this email already exists' });
-    }
-    
-    // Create cart for user
+    if (existingUser) return res.sendError('User with this email already exists');
     const cart = await Cart.create({});
-    
-    // Create new user
     const user = await User.create({
       first_name,
       last_name,
@@ -29,93 +24,66 @@ router.post('/', async (req, res) => {
       cart: cart._id,
       role: role || 'user'
     });
-    
-    res.status(201).json({
-      message: 'User created successfully',
-      user: {
-        id: user._id,
-        email: user.email,
-        first_name: user.first_name,
-        last_name: user.last_name,
-        role: user.role
-      }
+    res.sendSuccess({
+      id: user._id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      role: user.role
     });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating user', error: error.message });
+    res.sendError(error.message);
   }
 });
 
-// Authentication middleware for protected routes
-const authenticate = passport.authenticate('jwt', { session: false });
-
-// Get all users (protected)
-router.get('/', authenticate, async (req, res) => {
+// Obtener todos los usuarios (solo admin)
+router.get('/', ['admin'], jwtAuth, async (req, res) => {
   try {
     const users = await User.find().select('-password');
-    res.json(users);
+    res.sendSuccess(users);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching users', error: error.message });
+    res.sendError(error.message);
   }
 });
 
-// Get user by ID (protected)
-router.get('/:id', authenticate, async (req, res) => {
+// Obtener usuario por ID (cualquier autenticado)
+router.get('/:id', ['user', 'admin'], jwtAuth, async (req, res) => {
   try {
     const user = await User.findById(req.params.id).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json(user);
+    if (!user) return res.sendError('User not found');
+    res.sendSuccess(user);
   } catch (error) {
-    res.status(500).json({ message: 'Error fetching user', error: error.message });
+    res.sendError(error.message);
   }
 });
 
-// Update user (protected)
-router.put('/:id', authenticate, async (req, res) => {
+// Actualizar usuario (cualquier autenticado, solo admin puede cambiar role)
+router.put('/:id', ['user', 'admin'], jwtAuth, async (req, res) => {
   try {
     const { first_name, last_name, age, role } = req.body;
     const updateData = { first_name, last_name, age };
-    
-    // Only allow role update if current user is admin
-    if (role && req.user.role === 'admin') {
-      updateData.role = role;
-    }
-    
+    if (role && req.user.role === 'admin') updateData.role = role;
     const user = await User.findByIdAndUpdate(
       req.params.id,
       updateData,
       { new: true }
     ).select('-password');
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json({
-      message: 'User updated successfully',
-      user
-    });
+    if (!user) return res.sendError('User not found');
+    res.sendSuccess(user);
   } catch (error) {
-    res.status(500).json({ message: 'Error updating user', error: error.message });
+    res.sendError(error.message);
   }
 });
 
-// Delete user (protected)
-router.delete('/:id', authenticate, async (req, res) => {
+// Eliminar usuario (solo admin)
+router.delete('/:id', ['admin'], jwtAuth, async (req, res) => {
   try {
     const user = await User.findByIdAndDelete(req.params.id);
-    
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    
-    res.json({ message: 'User deleted successfully' });
+    if (!user) return res.sendError('User not found');
+    res.sendSuccess({ message: 'User deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error deleting user', error: error.message });
+    res.sendError(error.message);
   }
 });
 
-module.exports = router; 
+module.exports = router.getRouter(); 
