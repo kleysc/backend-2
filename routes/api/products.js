@@ -1,6 +1,6 @@
 // Product routes
 const CustomRouter = require('../../CustomRouter');
-const Product = require('../../models/Product');
+const ProductRepository = require('../../dao/repositories/ProductRepository');
 const { jwtAuth, authorizeRoles, injectUser } = require('../../middlewares/auth');
 
 const router = new CustomRouter();
@@ -11,7 +11,7 @@ router.router.use(injectUser);
 // Get all products (public)
 router.get('/', ['PUBLIC'], async (req, res) => {
   try {
-    const products = await Product.find();
+    const products = await ProductRepository.getAll();
     res.sendSuccess(products);
   } catch (error) {
     res.sendError(error.message);
@@ -21,7 +21,7 @@ router.get('/', ['PUBLIC'], async (req, res) => {
 // Get product by ID (public)
 router.get('/:id', ['PUBLIC'], async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await ProductRepository.getById(req.params.id);
     if (!product) return res.sendError('Product not found');
     res.sendSuccess(product);
   } catch (error) {
@@ -33,7 +33,7 @@ router.get('/:id', ['PUBLIC'], async (req, res) => {
 router.post('/', ['admin'], jwtAuth, async (req, res) => {
   try {
     const { name, description, price, stock, category } = req.body;
-    const product = await Product.create({ name, description, price, stock, category });
+    const product = await ProductRepository.create({ name, description, price, stock, category });
     res.sendSuccess(product);
   } catch (error) {
     res.sendError(error.message);
@@ -44,7 +44,7 @@ router.post('/', ['admin'], jwtAuth, async (req, res) => {
 router.put('/:id', ['admin'], jwtAuth, async (req, res) => {
   try {
     const updateData = req.body;
-    const product = await Product.findByIdAndUpdate(req.params.id, updateData, { new: true });
+    const product = await ProductRepository.update(req.params.id, updateData);
     if (!product) return res.sendError('Product not found');
     res.sendSuccess(product);
   } catch (error) {
@@ -55,7 +55,7 @@ router.put('/:id', ['admin'], jwtAuth, async (req, res) => {
 // Delete product (admin only)
 router.delete('/:id', ['admin'], jwtAuth, async (req, res) => {
   try {
-    const product = await Product.findByIdAndDelete(req.params.id);
+    const product = await ProductRepository.delete(req.params.id);
     if (!product) return res.sendError('Product not found');
     res.sendSuccess(product);
   } catch (error) {

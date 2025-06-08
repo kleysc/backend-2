@@ -1,6 +1,6 @@
 const CustomRouter = require('../../CustomRouter');
-const User = require('../../models/User');
-const Cart = require('../../models/Cart');
+const UserRepository = require('../../dao/repositories/UserRepository');
+const CartRepository = require('../../dao/repositories/CartRepository');
 const { jwtAuth, injectUser } = require('../../middlewares/auth');
 
 const router = new CustomRouter();
@@ -12,10 +12,10 @@ router.router.use(injectUser);
 router.post('/', ['PUBLIC'], async (req, res) => {
   try {
     const { first_name, last_name, email, age, password, role } = req.body;
-    const existingUser = await User.findOne({ email });
+    const existingUser = await UserRepository.getByEmail(email);
     if (existingUser) return res.sendError('User with this email already exists');
-    const cart = await Cart.create({});
-    const user = await User.create({
+    const cart = await CartRepository.create({});
+    const user = await UserRepository.create({
       first_name,
       last_name,
       email,
@@ -39,7 +39,7 @@ router.post('/', ['PUBLIC'], async (req, res) => {
 // Obtener todos los usuarios (solo admin)
 router.get('/', ['admin'], jwtAuth, async (req, res) => {
   try {
-    const users = await User.find().select('-password');
+    const users = await UserRepository.getAll().select('-password');
     res.sendSuccess(users);
   } catch (error) {
     res.sendError(error.message);
@@ -49,7 +49,7 @@ router.get('/', ['admin'], jwtAuth, async (req, res) => {
 // Obtener usuario por ID (cualquier autenticado)
 router.get('/:id', ['user', 'admin'], jwtAuth, async (req, res) => {
   try {
-    const user = await User.findById(req.params.id).select('-password');
+    const user = await UserRepository.getById(req.params.id).select('-password');
     if (!user) return res.sendError('User not found');
     res.sendSuccess(user);
   } catch (error) {
@@ -63,7 +63,7 @@ router.put('/:id', ['user', 'admin'], jwtAuth, async (req, res) => {
     const { first_name, last_name, age, role } = req.body;
     const updateData = { first_name, last_name, age };
     if (role && req.user.role === 'admin') updateData.role = role;
-    const user = await User.findByIdAndUpdate(
+    const user = await UserRepository.update(
       req.params.id,
       updateData,
       { new: true }
@@ -78,7 +78,7 @@ router.put('/:id', ['user', 'admin'], jwtAuth, async (req, res) => {
 // Eliminar usuario (solo admin)
 router.delete('/:id', ['admin'], jwtAuth, async (req, res) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const user = await UserRepository.delete(req.params.id);
     if (!user) return res.sendError('User not found');
     res.sendSuccess({ message: 'User deleted successfully' });
   } catch (error) {
