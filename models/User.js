@@ -32,7 +32,9 @@ const UserSchema = new mongoose.Schema({
     type: String,
     default: 'user',
     enum: ['user', 'admin']
-  }
+  },
+  resetPasswordToken: String,
+  resetPasswordExpires: Date
 }, { timestamps: true });
 
 // Hash password before saving
@@ -47,6 +49,11 @@ UserSchema.pre('save', function(next) {
 // Method to validate password
 UserSchema.methods.isValidPassword = function(password) {
   return bcrypt.compareSync(password, this.password);
+};
+
+UserSchema.methods.setPassword = function(newPassword) {
+  const salt = bcrypt.genSaltSync(10);
+  this.password = bcrypt.hashSync(newPassword, salt);
 };
 
 module.exports = mongoose.model('User', UserSchema); 
